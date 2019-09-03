@@ -1,13 +1,8 @@
-# Character Identification
+# 角色识别
 
-Character Identification is an entity linking task that finds the global entity of each personal mention in multiparty dialogue. 
-Let a mention be a nominal referring to a person (e.g., *she*, *mom*, *Judy*), and an entity be a character in a dialogue. 
-The goal is to assign each mention to its entity, who may or may not participate in the dialogue. 
-For the following example, the mention "mom" is not one of the speakers; nonetheless, it clearly refers to the specific person, *Judy Geller*, that could appear in some other dialogue. Identifying such mentions as real characters requires cross-document entity resolution, which makes this task challenging.
-
-![Character Identification Example](http://nlp.mathcs.emory.edu/character-mining/img/character-identification-example.png)
-
-This task is a part of the [Character Mining](../../../character-mining) project led by the [Emory NLP](http://nlp.mathcs.emory.edu) research group.
+角色识别是实体关系识别的一个子任务。它的目标是在多人对话中找到mention的全局的真实角色。
+这些mention可以是人名实体（贾志国、和平等），代词（她、他等），或物主代词（他的）等。
+下边的例子为情景喜剧《我爱我家》中的一段对话，在这里我们标出了所有mentions。
 
 ## Dataset
 
