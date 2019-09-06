@@ -94,15 +94,25 @@ class SpliceReader:
         tokens_all = []
 
         # sentence
-        for word_s, pos_s, dep_s, h_dep_s, ner_s in zip(word_forms, pos_tags, dep_tags, dep_heads, ner_tags):
+        # for word_s, pos_s, dep_s, h_dep_s, ner_s in zip(word_forms, pos_tags, dep_tags, dep_heads, ner_tags):
+        #     tokens = []
+        #
+        #     for idx, word, pos, dep, ner in zip(range(len(word_s)), word_s, pos_s, dep_s, ner_s):
+        #         token = TokenNode(idx, word, pos, ner, dep)
+        #         tokens.append(token)
+        #
+        #     for idx, hid in enumerate(h_dep_s):
+        #         tokens[idx].dep_head = tokens[hid - 1] if hid > 0 else None
+        #
+        #     tokens_all.append(tokens)
+
+        # sentence
+        for word_s, pos_s, ner_s in zip(word_forms, pos_tags, ner_tags):
             tokens = []
 
-            for idx, word, pos, dep, ner in zip(range(len(word_s)), word_s, pos_s, dep_s, ner_s):
-                token = TokenNode(idx, word, pos, ner, dep)
+            for idx, word, pos, ner in zip(range(len(word_s)), word_s, pos_s, ner_s):
+                token = TokenNode(idx, word, pos, ner)
                 tokens.append(token)
-
-            for idx, hid in enumerate(h_dep_s):
-                tokens[idx].dep_head = tokens[hid - 1] if hid > 0 else None
 
             tokens_all.append(tokens)
 

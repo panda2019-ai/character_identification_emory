@@ -1,4 +1,3 @@
-import numpy as np
 from util import *
 
 
@@ -24,7 +23,7 @@ def mention_meta(mention):
     def head_token(mention):
         tids = set([t.id for t in mention.tokens])
         for t in mention.tokens:
-            if t.dep_head and t.dep_head.id not in tids:
+            if t.dep_head and t.dep_head not in tids:
                 return t
         return mention.tokens[0]
 
@@ -107,9 +106,6 @@ class MentionFeatureExtractor(object):
         e, s, u, uid, u_ns, u_stid, u_etid, st_idx, \
         st_htid, ht, st_stid, ft, st_etid, lt = mention_meta(mention)
 
-        pt = ht.dep_head if ht else None
-        gt = pt.dep_head if pt else None
-
         # Group 1 embedding (Mention tokens, up to 4 tokens)
         emb_ft1 = self.wvecs(padded_span(mention.tokens, 0, 3), False)
 
@@ -129,12 +125,9 @@ class MentionFeatureExtractor(object):
 
         # Discrete mention features
         men_fts, utts = [], utterance_span(u, -2, 1)
-        # men_fts.append(self.anc_vec(ht))
         men_fts.append(self.gvecs(mention.tokens, True))
         men_fts.append(self.word_animacy(mention.tokens, True))
-        # men_fts.append([mention.id, st_idx])
         men_fts.extend([self.spk_vec(u.speakers if u else None) for u in utts])
-        # men_fts.extend([self.pos[ht.pos_tag], self.dep[ht.dep_label], self.ner[ht.ner_tag]])
 
         # Result features
         emb_fts = list(map(np.array, [emb_ft1, emb_ft2, emb_ft3, emb_ft4]))
@@ -153,23 +146,9 @@ class MentionFeatureExtractor(object):
         r1 = smatch / len(w1) if w1 else 0.0
         r2 = smatch / len(w2) if w2 else 0.0
         pfts.append([r1, r2])
-        # pfts.append([1.0 if str(m1) == str(m2) else 0.0])
-
         pfts.append([1.0 if str(ht1) == str(ht2) else 0.0])
-        # pfts.append([1.0 if spk1 == spk2 else 0.0])
         pfts.append([1.0 if len(set(spk1).difference(set(spk2))) == 0 else 0.0])
-
-        # pfts.append([1.0 if ht1.pos_tag == ht2.pos_tag else 0.0])
-        # pfts.append([1.0 if ht1.dep_label == ht2.dep_label else 0.0])
-        # pfts.append([1.0 if ht1.ner_tag == ht2.ner_tag else 0.0])
-
         pfts.append([m2.id-m1.id, st_idx2-st_idx1])
-        # pfts.extend([self.anc_vec(ht1), self.anc_vec(ht2)])
-        # pfts.extend([self.gvec(m1.tokens, True), self.gvec(m2.tokens, True)])
-        # pfts.extend([self.word_animacy(m1.tokens, True), self.word_animacy(m2.tokens, True)])
-        # pfts.extend([self.pos[ht1.pos_tag], self.dep[ht1.dep_label], self.ner[ht1.ner_tag]])
-        # pfts.extend([self.pos[ht2.pos_tag], self.dep[ht2.dep_label], self.ner[ht2.ner_tag]])
-        # pfts.extend([self.spk_vec(u.speaker if u else None) for u in [u1, u2]])
 
         return np.concatenate(pfts).astype('float32')
 
@@ -199,30 +178,6 @@ class MentionFeatureExtractor(object):
                 if avg else vecs
         return np.zeros(self.w2g_d)
 
-    # def pvecs(self, tokens, avg=False):
-    #     if tokens:
-    #         tags = [t.pos_tag if t else '' for t in tokens]
-    #         vecs = [self.pos[t] for t in tags]
-    #         return np.sum(vecs, axis=0) / len([t for t in tags if t]) \
-    #             if avg else vecs
-    #     return np.zeros(self.pos_d)
-    #
-    # def dvecs(self, tokens, avg=False):
-    #     if tokens:
-    #         labels = [t.dep_label if t else '' for t in tokens]
-    #         vecs = [self.dep[l] for l in labels]
-    #         return np.sum(vecs, axis=0) / len([l for l in labels if l]) \
-    #             if avg else vecs
-    #     return np.zeros(self.dep_d)
-    #
-    # def nvecs(self, tokens, avg=False):
-    #     if tokens:
-    #         tags = [t.ner_tag if t else '' for t in tokens]
-    #         vecs = [self.ner[t] for t in tags]
-    #         return np.sum(vecs, axis=0) / len([t for t in tags if t]) \
-    #             if avg else vecs
-    #     return np.zeros(self.ner_d)
-
     def spk_vec(self, speakers):
         if speakers:
             for speaker in speakers:
@@ -232,12 +187,6 @@ class MentionFeatureExtractor(object):
             return np.zeros(self.spk_d)
 
         return np.mean([self.spk[spkr] for spkr in speakers], axis=0).astype('float32') if speakers else np.zeros(self.spk_d)
-
-    # def anc_vec(self, token):
-    #     key = anc_str(token)
-    #     if key not in self.anc:
-    #         self.anc[key] = np.random.rand(self.anc_d)
-    #     return self.anc[key]
 
     def word_animacy(self, tokens, avg=False):
         words = [t.word_form if t else None for t in tokens]

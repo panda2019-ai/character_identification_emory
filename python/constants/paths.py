@@ -40,12 +40,12 @@ class Paths(object):
         @staticmethod
         def get_model_export_path(experiment_type, iteration_num):
             return Paths.CorefModels._dir + \
-                   Paths.CorefModels._model_name_template.format(experiment_type.value, iteration_num)
+                   Paths.CorefModels._model_name_template.format(experiment_type, iteration_num)
 
         @staticmethod
         def get_feat_map_export_path(experiment_type, iteration_num):
             return Paths.CorefModels._dir + \
-                   Paths.CorefModels._feat_map_name_template.format(experiment_type.value, iteration_num)
+                   Paths.CorefModels._feat_map_name_template.format(experiment_type, iteration_num)
 
     class Params(object):
         _dir = "params/"

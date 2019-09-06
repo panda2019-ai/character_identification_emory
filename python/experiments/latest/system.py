@@ -1,3 +1,5 @@
+import os
+
 from constants import ExperimentTypes
 from constants.paths import Paths
 from experiments.latest.model.coref import NoClusterFeatsPluralACNN
@@ -107,8 +109,11 @@ class LatestSystem(ExperimentSystem):
         加载4个季的剧本，抽取共指特征，训练mention组队和mention祖先模型
         :param seed_path: 已有模型的路径，为空时训练模型
         """
+        # 加载剧本语料
         spks, poss, deps, ners = self._load_transcripts()
+        # 抽取共指特征
         self._extract_coref_features(spks, poss, deps, ners)
+        # 获取共指特征形状
         eftdims, mftdim, pftdim = self._get_coref_feature_shapes()
 
         init_super_mentions(eftdims, mftdim, pftdim)
@@ -201,14 +206,8 @@ class LatestSystem(ExperimentSystem):
                     s.mpairs[am][cm] = mp
 
     def run_entity_linking(self):
-        self.entity_linking_logger.info("Beginning baseline entity linker...")
-        self.entity_linking_logger.info("-" * 40)
-
-        self._run_baseline_linking()
-
         self.entity_linking_logger.info("Beginning joint entity linker...")
         self.entity_linking_logger.info("-" * 40)
-
         self._run_joint_linking()
 
     def _run_joint_linking(self):
@@ -224,42 +223,44 @@ class LatestSystem(ExperimentSystem):
         mrepr_dim = len(m1.feat_map['mrepr'])
         mpair_dim = len(self.trn_coref_states[0].mpairs[m1][m2])
 
+        # 构建JointMentionClusterEntityLinker实例
         model = JointMentionClusterEntityLinker(self.linking_params["number_of_filters"],
                                                 mrepr_dim,
                                                 mpair_dim,
                                                 self.linking_labels,
                                                 self.entity_linking_logger,
                                                 gpu=self.linking_params["gpu_settings"])
-
+        # 训练
         model.train_linking(self.trn_coref_states,
                             self.dev_coref_states,
                             nb_epoch=self.linking_params["number_of_epochs"],
                             batch_size=self.linking_params["batch_size"],
                             model_out="")
-
+        # 评测
         self.entity_linking_logger.info('\nEvaluating trained model')
         scorer = LinkingMicroF1Evaluator(self.linking_labels)
         model.do_linking(self.tst_coref_states)
         scores = scorer.evaluate_states(self.tst_coref_states)
         avg = np.mean(list(scores.values()), axis=0)
-
+        # 准确率
         sacc, pacc = model.accuracy(self.tst_coref_states)
         self.entity_linking_logger.info('Test accuracy: %.4f/%.4f\n' % (sacc, pacc))
         for l, s in scores.items():
             self.entity_linking_logger.info("%10s : %.4f %.4f %.4f" % (l, s[0], s[1], s[2]))
         self.entity_linking_logger.info('\n%10s : %.4f %.4f %.4f' % ('avg', avg[0], avg[1], avg[2]))
-
+        # 宏平均
         macro_scorer = LinkingMacroF1Evaluator()
         p, r, f = macro_scorer.evaluate_states(self.tst_coref_states)
         self.entity_linking_logger.info("\n%10s : %.4f %.4f %.4f" % ("macro", p, r, f))
-
-        results_file = "joint-linking-results.txt"
+        # 输出标注结果
         results_path = Paths.Logs.get_log_dir() + \
-            to_dir_name(Paths.Logs.get_iteration_dir_name(self.iteration_num)) + \
-            results_file
-
+                       to_dir_name(Paths.Logs.get_iteration_dir_name(self.iteration_num))
+        if not os.path.exists(results_path):
+            os.mkdir(results_path)
+            print("create %s" % results_path)
+        results_file = "joint-linking-results.txt"
         writer = StateWriter()
-        writer.open_file(results_path)
+        writer.open_file(results_path + results_file)
         writer.write_states(self.tst_coref_states)
 
     def _run_baseline_linking(self):

@@ -25,6 +25,7 @@ class ExperimentSystem(ABC):
         self.dev_coref_states = []
         self.tst_coref_states = []
 
+        # 定义的角色标记
         self.other_label = "#other#"
         self.general_label = "#general#"
         self.linking_labels = ['monica geller', 'judy geller', 'jack geller', 'lily buffay', 'rachel green',
@@ -81,14 +82,21 @@ class ExperimentSystem(ABC):
         pass
 
     def _load_coref_resources(self):
+        """
+        加载共指特征所需资源
+        :return:
+        """
+        # 加载词语向量
         self.timer.start("load_w2v")
         w2v = load_word_vecs()
         self.coref_logger.info("Fasttext data loaded - %.2fs" % self.timer.end("load_w2v"))
 
+        # 加载姓名词典
         self.timer.start("load_w2g")
         w2g = load_gender_data()
         self.coref_logger.info("Gender data loaded   - %.2fs" % self.timer.end("load_w2g"))
 
+        # 加载animacy词典
         self.timer.start("load_animacy_dicts")
         ani = load_animate_data()
         ina = load_inanimate_data()
@@ -97,9 +105,21 @@ class ExperimentSystem(ABC):
         return w2v, w2g, ani, ina
 
     def _extract_coref_features(self, spks, poss, ners, deps, save_feats=True):
+        """
+        抽取共指特征
+        :param spks:
+        :param poss:
+        :param ners:
+        :param deps:
+        :param save_feats:
+        :return:
+        """
+        # 加载抽取共指特征所需资源
         w2v, w2g, ani, ina = self._load_coref_resources()
+        # mention特征抽取实例化
         feat_extractor = MentionFeatureExtractor(w2v, w2g, spks, poss, ners, deps, ani, ina)
 
+        # 抽取mention特征
         self.timer.start("feature_extraction")
         for s in sum([self.trn_coref_states, self.dev_coref_states, self.tst_coref_states], []):
             s.pfts = {m: dict() for m in s}
@@ -112,6 +132,7 @@ class ExperimentSystem(ABC):
                     s.pfts[a][m] = feat_extractor.extract_pairwise(a, m)
         self.coref_logger.info("Feature extracted    - %.2fs\n" % self.timer.end("feature_extraction"))
 
+        # 保存mention特征
         if save_feats:
             self.timer.start("dump_feature_extractor")
 
@@ -122,6 +143,10 @@ class ExperimentSystem(ABC):
                                    (self.coref_feat_map_save_path, self.timer.end("dump_feature_extractor")))
 
     def _get_coref_feature_shapes(self):
+        """
+        获取共指特征的形状
+        :return:
+        """
         m1, m2 = self.trn_coref_states[0][1], self.trn_coref_states[0][2]
         efts, mft = m1.feat_map["efts"], m1.feat_map["mft"]
 
@@ -143,6 +168,9 @@ class ExperimentSystem(ABC):
         pass
 
     def run(self):
+        # 运行共指消解
         self.run_coref()
+        # 抽取共指消解阶段得到的共指特征
         self.extract_learned_coref_features()
+        # 运行实体关系抽取
         self.run_entity_linking()

@@ -22,16 +22,19 @@ def init_logger(logger_name, log_file_path):
 
 
 def init_log_package_for_run(experiment_type, iteration_num):
+    # definitions.py所在目录的绝对路径+logs+latest
     experiment_path = to_dir_name(ROOT_DIR) + Paths.Logs.get_log_dir() + to_dir_name(experiment_type.value)
-
+    # 如果日志目录不存在，则创建
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
-
+        print("create %s" % experiment_path)
+    # 迭代次数目录
     iteration_dir_name = Paths.Logs.get_iteration_dir_name(iteration_num)
     iteration_path = experiment_path + to_dir_name(iteration_dir_name)
 
     if not os.path.exists(iteration_path):
         os.mkdir(iteration_path)
+        print("create %s" % iteration_path)
     # else:
     #     msg = "Run {0} of the {1} approach has already been initiated".format(iteration_num, experiment_type.name)
     #     raise Exception(msg)

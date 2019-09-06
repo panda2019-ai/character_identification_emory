@@ -1,7 +1,7 @@
+import os
+
 import dill
 import fasttext
-import numpy as np
-import pickle
 
 from experiments.latest.model.coref import NoClusterFeatsPluralACNN
 from experiments.latest.tools.evaluators import *
@@ -12,6 +12,7 @@ from experiments.latest.tools.state import PluralCorefState
 from constants.paths import *
 from component.features import *
 from util.readers import *
+from util.logutils import init_logger
 
 
 data_in = Paths.Transcripts.get_input_transcript_paths()
@@ -32,6 +33,11 @@ load_from_ftmap = False
 
 
 def main():
+
+    print("data_in", data_in)
+    print("model_out", model_out)
+    print("ftmap_out", ftmap_out)
+
     timer = Timer()
 
     # Loading transcripts
@@ -80,7 +86,7 @@ def main():
 
     # Loading word2vec
     timer.start('load_w2v')
-    w2v = fasttext.load_model(Paths.Resources.Fasttext50d)
+    w2v = fasttext.load_model(Paths.Resources.Fasttext300d)
     print("Fasttext data loaded - %.2fs" % timer.end('load_w2v'))
 
     # Loading gender data
@@ -122,7 +128,6 @@ def main():
     if ftmap_out and not eval_only:
         timer.start('dump_feature_extractor')
         with open(ftmap_out, 'wb') as fout:
-            # pickle.dump(mft_map, fout, protocol=2)
             dill.dump(mft_map, fout, protocol=2)
         print("Feature extractor saved to %s - %.2fs" % (ftmap_out, timer.end('dump_feature_extractor')))
 
@@ -143,7 +148,8 @@ def main():
     with open("trained_models/pl.noc-mm.super-ms.f1-4.%d.p" % model_num, "wb") as sfout:
         dill.dump([other, general], sfout, protocol=2)
 
-    model = NoClusterFeatsPluralACNN(eftdims, mftdim, pftdim, nb_fltrs, gpu_num, gpu=gpu)
+    model = NoClusterFeatsPluralACNN(eftdims, mftdim, pftdim, nb_fltrs, gpu_num,
+                                     init_logger('logs', 'run-coref'), gpu=gpu)
     if not eval_only:
         # Model training
         model.train_ranking(Strn, Sdev, nb_epoch=nb_epoch, batch_size=batch_size, model_out=model_out)
