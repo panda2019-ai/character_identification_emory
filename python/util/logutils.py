@@ -10,9 +10,11 @@ def init_logger(logger_name, log_file_path):
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
 
+    # 设置日志
     handler = logging.FileHandler(log_file_path)
     handler.setLevel(logging.INFO)
 
+    # 设置日志格式
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
 

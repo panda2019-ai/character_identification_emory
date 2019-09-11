@@ -158,3 +158,35 @@ Evaluating trained model
        avg : 0.1852 0.1767 0.1743
 2019-09-03 15:54:57,322 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - 
      macro : 0.4324 0.4399 0.4361
+2019-09-11 00:22:18,184 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - Beginning joint entity linker...
+2019-09-11 00:22:18,187 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - ----------------------------------------
+2019-09-11 00:22:40,843 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - Epoch   1 - trn: 16.76s, Trn - ls 2.0001/0.1661 ac 0.3168/0.9399, Dev - ls 1.9409/0.1691 ac 0.3657/0.9381
+2019-09-11 00:22:41,079 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - Summary - S - Trn: 0.3168, Dev: 0.3657 @ Epoch 1 - 16.92s
+2019-09-11 00:22:41,079 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - P - Trn: 0.9399, Dev: 0.9381 @ Epoch 1 - 16.92s
+2019-09-11 00:22:41,097 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - 
+Evaluating trained model
+2019-09-11 00:22:44,704 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - Test accuracy: 0.3322/0.9386
+
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - monica geller : 0.2313 0.7592 0.3545
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - judy geller : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - jack geller : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - lily buffay : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - rachel green : 0.5385 0.0077 0.0153
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - joey tribbiani : 0.3822 0.2387 0.2939
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - phoebe buffay : 0.4733 0.0734 0.1270
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - carol willick : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - ross geller : 0.2771 0.6320 0.3852
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - chandler bing : 0.3827 0.1940 0.2575
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO -    gunther : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - ben geller : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - barry farber : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,705 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - richard burke : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,706 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - kate miller : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,706 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - peter becker : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,706 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - emily waltham : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,706 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO -    #other# : 0.4350 0.4099 0.4221
+2019-09-11 00:22:44,706 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO -  #general# : 0.0000 0.0000 0.0000
+2019-09-11 00:22:44,706 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - 
+       avg : 0.1432 0.1218 0.0977
+2019-09-11 00:22:44,717 - LatestSystem.SubsystemTypes.ENTITY_LINKING - INFO - 
+     macro : 0.3155 0.2979 0.3065
