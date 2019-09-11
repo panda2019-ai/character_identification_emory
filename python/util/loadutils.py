@@ -14,7 +14,7 @@ def load_word_vecs():
     """
     可以选择加载不同维度的词典向量，支持的词典向量见character-identification\python\constants\paths.py中定义
     """
-    return fasttext.load_model(Paths.Resources.Fasttext300d)
+    return fasttext.load_model(Paths.Resources.Fasttext50d)
 
 
 def load_gender_data():
