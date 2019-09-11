@@ -51,7 +51,9 @@ class JointMentionClusterEntityLinker(object):
                                     metrics=["sparse_categorical_accuracy"])
 
         self.plinking_model = Model(inputs=[mrepr, crepr, cmmft], outputs=[pl_probs])
-        self.plinking_model.compile(optimizer=RMSprop(), loss=['binary_crossentropy'], metrics=["accuracy"])
+        self.plinking_model.compile(optimizer=RMSprop(),
+                                    loss=['binary_crossentropy'],
+                                    metrics=["accuracy"])
 
     def predict(self, instances):
         return self.slinking_model.predict(instances), self.plinking_model.predict(instances)
