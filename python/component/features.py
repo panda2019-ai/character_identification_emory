@@ -77,7 +77,7 @@ def anc_str(t):
 
 class MentionFeatureExtractor(object):
     def __init__(self, w2v, w2g, spks, poss, ners, deps, ani, ina, spk_dim=5, pos_dim=5, ner_dim=5, dep_dim=5, anc_dim=5):
-        self.w2v, self.w2v_d, self.w2g, self.w2g_d = w2v, w2v.get_dimension(), w2g, len(list(w2g.values())[0])
+        self.w2v, self.w2v_d, self.w2g, self.w2g_d = w2v, w2v.get_dimension(), w2g, 0
         self.none_wvec, self.none_gvec = np.zeros(self.w2v_d).astype('float32'), np.zeros(self.w2g_d).astype('float32')
 
         self.ani, self.ina = ani, ina
