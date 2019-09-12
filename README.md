@@ -9,8 +9,7 @@
         - [1.3 将EmroyNLP语料翻译为中文](#13-将emroynlp语料翻译为中文)
     - [引用文献](#引用文献)
     - [参考文献](#参考文献)
-    - [Shared Task](#shared-task)
-    - [Contact](#contact)
+    - [共享任务](#共享任务)
 
 <!-- /TOC -->
 
@@ -21,6 +20,8 @@
 ## 1. 中文语料准备
 
 这里我们借用Emory NLP的角色识别系统Demo语料来构建中文角色识别系统语料。
+
+Emory NLP角色识别系统可以参考：
 
 * Latest release: [v2.0](https://github.com/emorynlp/character-identification/archive/character-identification-2.0.tar.gz).
 * [Release notes](https://github.com/emorynlp/character-identification/releases).
@@ -65,10 +66,6 @@
 * [Robust Coreference Resolution and Entity Linking on Dialogues: Character Identification on TV Show Transcripts](http://www.aclweb.org/anthology/K17-1023), Henry Y. Chen, Ethan Zhou, and Jinho D. Choi. Proceedings of the 21st Conference on Computational Natural Language Learning, CoNLL'17, 2017 ([slides](https://www.slideshare.net/jchoi7s/robust-coreference-resolution-and-entity-linking-on-dialogues-character-identification-on-tv-show-transcripts)).
 * [Character Identification on Multiparty Conversation: Identifying Mentions of Characters in TV Shows](http://www.aclweb.org/anthology/W16-3612), Henry Y. Chen and Jinho D. Choi. Proceedings of the 17th Annual SIGdial Meeting on Discourse and Dialogue, SIGDIAL'16, 2016 ([poster](https://www.slideshare.net/jchoi7s/character-identification-on-multiparty-conversation-identifying-mentions-of-characters-in-tv-shows)).
 
-## Shared Task
+## 共享任务
 
 * [SemEval 2018 Task 4: Character Identification on Multiparty Dialogues](../../../semeval-2018-task4).
-
-## Contact
-
-* [Jinho D. Choi](http://www.mathcs.emory.edu/~choi).
