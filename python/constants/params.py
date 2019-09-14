@@ -11,4 +11,5 @@ class LinkingParams:
     nb_epoch = 100
     batch_size = 128
     gpu = []
-    eval_only = False
+    # 设置为True时，直接加载模型而不训练
+    eval_only = True
