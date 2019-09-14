@@ -208,7 +208,7 @@ class LatestSystem(ExperimentSystem):
     def run_entity_linking(self):
         self.entity_linking_logger.info("Beginning joint entity linker...")
         self.entity_linking_logger.info("-" * 40)
-        self._run_joint_linking()
+        self._run_baseline_linking()
 
     def _run_joint_linking(self):
         all_states = sum([self.trn_coref_states, self.dev_coref_states, self.tst_coref_states], [])
@@ -243,8 +243,8 @@ class LatestSystem(ExperimentSystem):
         scores = scorer.evaluate_states(self.tst_coref_states)
         avg = np.mean(list(scores.values()), axis=0)
         # 准确率
-        sacc, pacc = model.accuracy(self.tst_coref_states)
-        self.entity_linking_logger.info('Test accuracy: %.4f/%.4f\n' % (sacc, pacc))
+        pacc = model.accuracy(self.tst_coref_states)
+        self.entity_linking_logger.info('Test accuracy: %.4f\n' % (pacc))
         for l, s in scores.items():
             self.entity_linking_logger.info("%10s : %.4f %.4f %.4f" % (l, s[0], s[1], s[2]))
         self.entity_linking_logger.info('\n%10s : %.4f %.4f %.4f' % ('avg', avg[0], avg[1], avg[2]))

@@ -38,12 +38,15 @@ def main():
     Sall = Strn + Sdev + Stst
     print('States loaded - %.2fs' % timer.end('load_states'))
 
-    # Referent label reassignment
+    # 引用label重赋值
     for m in sum(Sall, []):
         m.gold_refs = [OTHER if gref.lower() not in labels else gref.lower() for gref in m.gold_refs]
 
+    # 计算mention和mentions-pair维度
     m1, m2 = Strn[0][0], Strn[0][1]
+    # mention维度
     mrepr_dim = len(m1.feat_map['mrepr'])
+    # mention-pair维度
     mpair_dim = len(Strn[0].mpairs[m1][m2])
 
     model = JointMentionClusterEntityLinker(nb_fltrs, mrepr_dim, mpair_dim, labels, gpu=gpu)
@@ -54,21 +57,25 @@ def main():
         model.load_model_weights(model_out + ".sing", model_out + ".pl")
 
     print('\nEvaluating trained model')
+    # 计算每个角色的准确率
     scorer = LinkingMicroF1Evaluator(labels)
     model.do_linking(Stst)
     scores = scorer.evaluate_states(Stst)
     avg = np.mean(list(scores.values()), axis=0)
 
+    # 计算测试集上的准确率
     sacc, pacc = model.accuracy(Stst)
     print('Test accuracy: %.4f/%.4f\n' % (sacc, pacc))
     for l, s in scores.items():
         print("%10s : %.4f %.4f %.4f" % (l, s[0], s[1], s[2]))
     print('\n%10s : %.4f %.4f %.4f' % ('avg', avg[0], avg[1], avg[2]))
 
+    # 计算测试集上的召回率
     macro_scorer = LinkingMacroF1Evaluator()
     p, r, f = macro_scorer.evaluate_states(Stst)
     print("\n%10s : %.4f %.4f %.4f" % ("macro", p, r, f))
 
+    # 写结果文件
     results_path = "./jel-noc.results.f1-4.%d.txt" % model_num
     writer = StateWriter()
     writer.open_file(results_path)

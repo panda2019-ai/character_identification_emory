@@ -41,7 +41,6 @@ class JointMentionClusterEntityLinker(object):
 
             hidden1 = Dense(dense_dim, activation='relu')(cm_vec)
             hidden2 = Dense(dense_dim, activation='relu')(hidden1)
-            # probs = Dense(nb_labels, activation='sigmoid')(hidden2)
             sing_probs = Dense(nb_labels + 1, activation='softmax')(hidden2)
             pl_probs = Dense(nb_labels, activation='sigmoid')(hidden2)
 
