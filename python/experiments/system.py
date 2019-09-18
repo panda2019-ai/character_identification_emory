@@ -10,19 +10,27 @@ from util.logutils import *
 
 class ExperimentSystem(ABC):
     def __init__(self, iteration_num=1, use_test_params=True):
+        # 模型训练的迭代次数
         self.iteration_num = iteration_num
-
+        # 共指消解日志、共指消解得到的簇日志、实体连接日志
         self.coref_logger, self.export_clusters_logger, self.entity_linking_logger = self.init_system_logging()
-
+        # 共指消解模型参数、实体连接参数
         self.coref_params, self.linking_params = self.init_params(use_test_params=use_test_params)
-
+        # 共指消解特征保存路径
         self.coref_feat_map_save_path = Paths.CorefModels.get_feat_map_export_path(self._experiment_type(), self.iteration_num)
+        # 共指消解模型保存路径
         self.coref_model_save_path = Paths.CorefModels.get_model_export_path(self._experiment_type(), self.iteration_num)
+        # 实体连接模型保存路径
+        self.linking_model_save_path = Paths.LinkingModels.get_model_export_path(self._experiment_type(), self.iteration_num)
 
+
+        # 该抽象类的继承类一旦实例化则实例化计时器
         self.timer = Timer()
-
+        # 共指消解特征构成的训练集
         self.trn_coref_states = []
+        # 共指消解特征构成的验证集
         self.dev_coref_states = []
+        # 共指消解特征构成的测试集
         self.tst_coref_states = []
 
         # 定义的角色标记
@@ -33,6 +41,7 @@ class ExperimentSystem(ABC):
                                'gunther', 'ben geller', 'barry farber', 'richard burke', 'kate miller', 'peter becker',
                                'emily waltham'] + [self.other_label, self.general_label]
 
+    # 初始化角色识别系统模型参数值
     def init_params(self, use_test_params=True):
         if use_test_params:
             coref_params_path = Paths.Params.get_test_params_path(self._experiment_type(), SubsystemTypes.COREF)
@@ -46,6 +55,7 @@ class ExperimentSystem(ABC):
 
         return coref_params, linking_params
 
+    # 初始化角色识别系统日志对象
     def init_system_logging(self):
         init_log_package_for_run(self._experiment_type(), self.iteration_num)
 
@@ -64,14 +74,21 @@ class ExperimentSystem(ABC):
 
         return coref_logger, export_clusters_logger, entity_linking_logger
 
+    # 设置模型训练迭代次数
     def set_model_iteration(self, model_num):
         self.iteration_num = model_num
 
+    # 设置共指消解特征保存路径
     def set_feat_map_save_path(self, save_path):
         self.coref_feat_map_save_path = save_path
 
+    # 设置共指消解模型保存路径
     def set_coref_model_save_path(self, save_path):
         self.coref_model_save_path = save_path
+
+    # 设置实体连接模型保存路径
+    def set_linking_model_save_path(self, save_path):
+        self.linking_model_save_path = save_path
 
     @abstractmethod
     def _experiment_type(self):
@@ -81,11 +98,8 @@ class ExperimentSystem(ABC):
     def _load_transcripts(self):
         pass
 
+    # 加载共指消解词典资源
     def _load_coref_resources(self):
-        """
-        加载共指特征所需资源
-        :return:
-        """
         # 加载词语向量
         self.timer.start("load_w2v")
         w2v = load_word_vecs()
@@ -104,22 +118,14 @@ class ExperimentSystem(ABC):
 
         return w2v, w2g, ani, ina
 
+    # 抽取共指消解特征
     def _extract_coref_features(self, spks, poss, ners, deps, save_feats=True):
-        """
-        抽取共指特征
-        :param spks:
-        :param poss:
-        :param ners:
-        :param deps:
-        :param save_feats:
-        :return:
-        """
         # 加载抽取共指特征所需资源
         w2v, w2g, ani, ina = self._load_coref_resources()
-        # mention特征抽取实例化
+        # 实例化抽取共指消解特征对象
         feat_extractor = MentionFeatureExtractor(w2v, w2g, spks, poss, ners, deps, ani, ina)
 
-        # 抽取mention特征
+        # 抽取共指消解特征
         self.timer.start("feature_extraction")
         for s in sum([self.trn_coref_states, self.dev_coref_states, self.tst_coref_states], []):
             s.pfts = {m: dict() for m in s}
@@ -132,7 +138,7 @@ class ExperimentSystem(ABC):
                     s.pfts[a][m] = feat_extractor.extract_pairwise(a, m)
         self.coref_logger.info("Feature extracted    - %.2fs\n" % self.timer.end("feature_extraction"))
 
-        # 保存mention特征
+        # 保存共指消解特特征
         if save_feats:
             self.timer.start("dump_feature_extractor")
 
@@ -142,11 +148,8 @@ class ExperimentSystem(ABC):
             self.coref_logger.info("Feature extractor saved to %s - %.2fs" %
                                    (self.coref_feat_map_save_path, self.timer.end("dump_feature_extractor")))
 
+    # 获取共指消解特征各向量维度
     def _get_coref_feature_shapes(self):
-        """
-        获取共指特征的形状
-        :return:
-        """
         m1, m2 = self.trn_coref_states[0][1], self.trn_coref_states[0][2]
         efts, mft = m1.feat_map["efts"], m1.feat_map["mft"]
 
@@ -167,10 +170,12 @@ class ExperimentSystem(ABC):
     def run_entity_linking(self):
         pass
 
+    # 运行角色识别系统
     def run(self):
-        # 运行共指消解
-        self.run_coref()
-        # 抽取共指消解阶段得到的共指特征
+        # 抽取共指消解特征，训练共指消解模型，保存共指消解模型，
+        # 如果设置seed_path="test"，则只抽取共指消解特征，不训练也不保存共指消解模型。
+        self.run_coref(seed_path="test")
+        # 加载共指消解模型，并解析出共指消解特征
         self.extract_learned_coref_features()
-        # 运行实体关系抽取
-        self.run_entity_linking()
+        # 实体连接抽取
+        self.run_entity_linking(seed_path="test")

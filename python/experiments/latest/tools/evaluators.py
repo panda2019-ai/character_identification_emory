@@ -159,6 +159,7 @@ class LinkingMicroF1Evaluator(object):
     def __init__(self, labels):
         self.labels = labels
 
+    # 针对每一个角色，统计gold中的代词与预测出的代词之间的重复数量，计算准确率、召回率、F值
     def evaluate_states(self, states):
         gold_links = {l: [] for l in self.labels}
         auto_links = {l: [] for l in self.labels}

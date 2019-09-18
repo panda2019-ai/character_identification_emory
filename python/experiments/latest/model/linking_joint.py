@@ -41,7 +41,9 @@ class JointMentionClusterEntityLinker(object):
 
             hidden1 = Dense(dense_dim, activation='relu')(cm_vec)
             hidden2 = Dense(dense_dim, activation='relu')(hidden1)
+            # softmax作为激活函数的输出层
             sing_probs = Dense(nb_labels + 1, activation='softmax')(hidden2)
+            # sigmoid作为激活函数的输出层
             pl_probs = Dense(nb_labels, activation='sigmoid')(hidden2)
 
         self.slinking_model = Model(inputs=[mrepr, crepr, cmmft], outputs=[sing_probs])
@@ -59,6 +61,13 @@ class JointMentionClusterEntityLinker(object):
 
     def accuracy(self, states):
         X, Ys, Yp = self.construct_batch(states)
+        self.slinking_model.metrics = ['sparse_categorical_accuracy']
+        self.plinking_model.metrics = ['binary_accuracy']
+        self.logger.info("slinking_model.metrics_names\n" + str(self.slinking_model.metrics_names))
+        self.logger.info("slinking_model.summary\n" + str(self.slinking_model.summary()))
+        self.logger.info("plinking_model.metrics_names\n" + str(self.plinking_model.metrics_names))
+        self.logger.info("plinking_model.summary\n" + str(self.plinking_model.summary()))
+
         return self.slinking_model.test_on_batch(X, Ys)[1], self.plinking_model.test_on_batch(X, Yp)[1]
 
     def load_model_weights(self, sing_path, pl_path):
@@ -85,14 +94,15 @@ class JointMentionClusterEntityLinker(object):
         spreds, ppreds = self.predict([mreprs, creprs, cmmfts])
         spreds = np.argmax(spreds, axis=1)
         for m, sp, pps in zip(ms, spreds, ppreds):
-            if sp == self.nb_labels:
+            if sp == self.nb_labels:  # 如果预测的说话者为General的话，则只保留预测角色得分>0.5的角色
                 argps = np.where(pps > 0.5)[0]
                 m.auto_refs = [self.idx2label[argp] for argp in argps]
-            else:
+            else:  # 如果预测的说话者非General的话，直接给出预测角色
                 m.auto_refs = [self.idx2label[sp]]
 
     def train_linking(self, Strn, Sdev, nb_epoch=20, batch_size=32, model_out=None):
-        (Xtrn, Ystrn, Yptrn), (Xdev, Ysdev, Ypdev) = self.construct_batch(Strn), self.construct_batch(Sdev)
+        Xtrn, Ystrn, Yptrn = self.construct_batch(Strn)
+        Xdev, Ysdev, Ypdev = self.construct_batch(Sdev)
         sm, pm, Sall, timer = self.slinking_model, self.plinking_model, Strn + Sdev, Timer()
         best_strn, best_sdev, best_sepoch, best_weights_sing = 0, 0, 0, None
         best_ptrn, best_pdev, best_pepoch, best_weights_pl = 0, 0, 0, None
@@ -159,7 +169,6 @@ class JointMentionClusterEntityLinker(object):
         mreprs, creprs, cmmfts, slabels, plabels = [], [], [], [], []
         for s in states:
             m2aCs, m_mpairs = s.m2_aCs, s.mpairs
-
             for m in s:
                 crepr, cmmft = self.get_cembds(m2aCs[m], m, m_mpairs)
                 mreprs.append(m.feat_map['mrepr'])

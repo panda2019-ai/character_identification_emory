@@ -42,13 +42,18 @@ class NoClusterFeatsPluralACNN(object):
                 eft_c1rs, eft_c2rs, eft_c3rs, eft_p1rs, eft_p2rs, eft_p3rs = [], [], [], [], [], []
                 for r, d in eftdims:
                     expand_dims.append(Reshape((r, d, -1)))
+                    # CONV1 卷积核窗口为1个单词
                     eft_c1rs.append(Conv2D(nb_fltrs, (1, d), activation='tanh'))
+                    # CONV1 卷积核窗口为2个单词
                     eft_c2rs.append(Conv2D(nb_fltrs, (2, d), activation='tanh'))
+                    # CONV1 卷积核窗口为3个单词
                     eft_c3rs.append(Conv2D(nb_fltrs, (3, d), activation='tanh'))
+                    # CONV1 池化层
                     eft_p1rs.append(MaxPooling2D(pool_size=(r - 0, 1)))
                     eft_p2rs.append(MaxPooling2D(pool_size=(r - 1, 1)))
                     eft_p3rs.append(MaxPooling2D(pool_size=(r - 2, 1)))
 
+                # CONV2 卷积核窗口为1个mention
                 nb_rows, mrepr_conv = 3 * self.nb_efts, Conv2D(nb_fltrs, (1, nb_fltrs), activation='tanh')
                 reshape_cefts, mrepr_pool = Reshape((nb_rows, nb_fltrs, -1)), MaxPooling2D(pool_size=(nb_rows, 1))
 
@@ -84,28 +89,36 @@ class NoClusterFeatsPluralACNN(object):
                 mm_hidden = dropout(Dense(nb_fltrs, activation='relu')(mm_mpair))
                 mm_probs = Dense(3, activation='softmax', name='mm_probs', kernel_regularizer=l2(0.005))(mm_hidden)
 
+        # 构造mention嵌入表达的模型
         mrepr_inputs = m2_efts + [m2_mft]
         self.mrepr_model = Model(inputs=mrepr_inputs, outputs=[m2_mrepr], name='mm_mrepr_model')
 
+        # 构造mention-parir嵌入表达的模型
         mpair_inputs = m1_efts + m2_efts + [m1_mft, m2_mft, mm_pft]
         self.mpair_model = Model(inputs=mpair_inputs, outputs=[mm_mpair], name='mm_mpair_model')
 
+        # 构建mention-pair排序得分模型
         ranking_inputs = m1_efts + m2_efts + [m1_mft, m2_mft, mm_pft]
         self.ranking_model = Model(inputs=ranking_inputs, outputs=[mm_probs], name='mm_ranking_model')
         self.ranking_model.compile(optimizer=RMSprop(), loss=['sparse_categorical_crossentropy'], metrics=['sparse_categorical_accuracy'])
 
+    # 获取mention表达
     def get_mreprs(self, instances):
         return self.mrepr_model.predict(instances)
 
+    # 获取mention-pair表达
     def get_mpairs(self, instances):
         return self.mpair_model.predict(instances)
 
+    # 获取mention-pair排序得分
     def predict(self, instances):
         return self.ranking_model.predict(instances)
 
+    # 加载mention-pair排序模型
     def load_model_weights(self, path):
         self.ranking_model.load_weights(path)
 
+    # 保存mention-pari排序模型
     def save_model_weights(self, path):
         self.ranking_model.save_weights(path)
 
@@ -144,6 +157,7 @@ class NoClusterFeatsPluralACNN(object):
 
             ntdone = [s for s in ntdone if not s.done()]
 
+    # 训练mention-pair排序模型
     def train_ranking(self, Strn, Sdev, nb_epoch=20, batch_size=32, model_out=None):
         Xtrn, Ytrn = construct_batch(Strn)
         Xdev, Ydev = construct_batch(Sdev)

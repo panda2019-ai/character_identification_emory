@@ -112,10 +112,6 @@ def construct_batch(states):
 
     print("Clusters recreated with 100% fidelity.")
 
-    # c, probs = len(m1_efts[0]), np.array(probs)
-    # m1_efts, m2_efts, m1_mfts, m2_mfts, mp_pfts = map(np.array, [m1_efts, m2_efts, m1_mfts, m2_mfts, mp_pfts])
-    # m1_efts, m2_efts = [np.stack(m1_efts[:, g]) for g in range(c)], [np.stack(m2_efts[:, g]) for g in range(c)]
-
     c, probs = len(m1_efts), np.array(probs)
     m1_efts, m2_efts, m1_mfts, m2_mfts, mp_pfts = [np.array(g) for g in m1_efts], \
                                                   [np.array(g) for g in m2_efts], \

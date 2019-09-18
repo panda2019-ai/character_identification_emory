@@ -104,20 +104,20 @@ class LatestSystem(ExperimentSystem):
 
         return spks, poss, deps, ners
 
+    # 抽取共指消解特征，训练共指消解模型，保存共指消解模型，
+    # 如果设置seed_path="test"，则只抽取共指消解特征，不训练也不保存共指消解模型。
     def run_coref(self, seed_path=""):
-        """
-        加载4个季的剧本，抽取共指特征，训练mention组队和mention祖先模型
-        :param seed_path: 已有模型的路径，为空时训练模型
-        """
         # 加载剧本语料
         spks, poss, deps, ners = self._load_transcripts()
-        # 抽取共指特征
-        self._extract_coref_features(spks, poss, deps, ners)
-        # 获取共指特征形状
-        eftdims, mftdim, pftdim = self._get_coref_feature_shapes()
 
+        # 抽取共指特征，save_feats=False不保存抽取出的特征
+        self._extract_coref_features(spks, poss, deps, ners, save_feats=False)
+
+        # 初始化other类型mention和general类型mention
+        eftdims, mftdim, pftdim = self._get_coref_feature_shapes()
         init_super_mentions(eftdims, mftdim, pftdim)
-        # 初始化排序模型
+
+        # 初始化共指消解模型
         model = NoClusterFeatsPluralACNN(eftdims,
                                          mftdim,
                                          pftdim,
@@ -127,37 +127,40 @@ class LatestSystem(ExperimentSystem):
                                          gpu=self.coref_params["gpu_settings"])
 
         if type(seed_path) == str and len(seed_path) == 0:
-            # 训练排序模型（mention组队，mention祖先）
+            # 训练共指消解模型并自动保存
             model.train_ranking(self.trn_coref_states,
                                 self.dev_coref_states,
                                 nb_epoch=self.coref_params["number_of_epochs"],
                                 batch_size=self.coref_params["batch_size"],
                                 model_out=self.coref_model_save_path)
         else:
-            # 加载模型
             model.load_model_weights(self.coref_model_save_path)
 
-        # Model evaluation
+        # 共指消解模型评测
         self.coref_logger.info('\nEvaluating trained model on Tst')
         model.decode_clusters([s.reset() for s in self.tst_coref_states])
 
         for s in self.tst_coref_states:
             s.create_singletons()
 
+        # golds测试语料中标注好的共指簇，autos为系统预测的共指簇
         golds, autos, = [s.gCs for s in self.tst_coref_states], [s.auto_clusters() for s in self.tst_coref_states]
-
+        # Bcube评测方法
         p, r, f = BCubeEvaluator().evaluate_documents(golds, autos)
         self.coref_logger.info('Bcube - %.4f/%.4f/%.4f' % (p, r, f))
-
+        # Ceafe评测方法
         p, r, f = CeafeEvaluator().evaluate_documents(golds, autos)
         self.coref_logger.info('Ceafe - %.4f/%.4f/%.4f' % (p, r, f))
-
+        # Blanc评测方法
         p, r, f = BlancEvaluator().evaluate_documents(golds, autos)
         self.coref_logger.info('Blanc - %.4f/%.4f/%.4f' % (p, r, f))
 
-    def extract_learned_coref_features(self):
-        eftdims, mftdim, pftdim = self._get_coref_feature_shapes()
 
+    # 加载共指消解模型，并解析出共指消解特征
+    def extract_learned_coref_features(self):
+        # 获取共指消解特征各向量维度
+        eftdims, mftdim, pftdim = self._get_coref_feature_shapes()
+        # 实例化共指消解模型
         model = NoClusterFeatsPluralACNN(eftdims,
                                          mftdim,
                                          pftdim,
@@ -165,14 +168,13 @@ class LatestSystem(ExperimentSystem):
                                          self.coref_params["gpu_number"],
                                          self.export_clusters_logger,
                                          gpu=self.coref_params["gpu_settings"])
-
+        # 加载共指消解模型
         model.load_model_weights(self.coref_model_save_path)
 
+        # 解析出共指消解特征
         all_states = sum([self.trn_coref_states, self.dev_coref_states, self.tst_coref_states], [])
         ms = sum(all_states, [])
-
         m_efts = np.array([m.feat_map['efts'] for m in ms])
-
         m_mfts = np.array([m.feat_map['mft'] for m in ms])
         m_efts = [np.stack(m_efts[:, g]) for g in range(len(m_efts[0]))]
 
@@ -205,12 +207,13 @@ class LatestSystem(ExperimentSystem):
                 for mp, (am, cm) in zip(mpairs, pairs):
                     s.mpairs[am][cm] = mp
 
-    def run_entity_linking(self):
+    def run_entity_linking(self, seed_path=""):
         self.entity_linking_logger.info("Beginning joint entity linker...")
         self.entity_linking_logger.info("-" * 40)
-        self._run_baseline_linking()
+        self._run_joint_linking(seed_path)
 
-    def _run_joint_linking(self):
+    # 实体关系抽取
+    def _run_joint_linking(self, seed_path=""):
         all_states = sum([self.trn_coref_states, self.dev_coref_states, self.tst_coref_states], [])
 
         for m in sum(all_states, []):
@@ -230,28 +233,41 @@ class LatestSystem(ExperimentSystem):
                                                 self.linking_labels,
                                                 self.entity_linking_logger,
                                                 gpu=self.linking_params["gpu_settings"])
-        # 训练
-        model.train_linking(self.trn_coref_states,
-                            self.dev_coref_states,
-                            nb_epoch=self.linking_params["number_of_epochs"],
-                            batch_size=self.linking_params["batch_size"],
-                            model_out="")
+
+        if type(seed_path) == str and len(seed_path) == 0:  # 训练
+            model.train_linking(self.trn_coref_states,  # 训练集共指特征
+                                self.dev_coref_states,  # 验证集共指特征
+                                nb_epoch=self.linking_params["number_of_epochs"],  # 训练集使用周期数
+                                batch_size=self.linking_params["batch_size"],  # 每一批次数据大小
+                                model_out=self.linking_model_save_path)
+        else:
+            model.load_model_weights(self.linking_model_save_path + ".sing",
+                                     self.linking_model_save_path + ".pl")
+
         # 评测
         self.entity_linking_logger.info('\nEvaluating trained model')
-        scorer = LinkingMicroF1Evaluator(self.linking_labels)
+
+        # 调用模型的metric方法，输出准确率
+        sacc, pacc = model.accuracy(self.tst_coref_states)
+        self.entity_linking_logger.info('Test accuracy: sacc=%.4f/pacc=%.4f\n' % (sacc, pacc))
+
+        # 预测测试集中每个代词对应的角色
         model.do_linking(self.tst_coref_states)
+        # 针对每一个角色，统计gold中的代词与预测出的代词之间的重复数量，计算准确率、召回率、F值
+        scorer = LinkingMicroF1Evaluator(self.linking_labels)
         scores = scorer.evaluate_states(self.tst_coref_states)
+        # 计算平均角色准确率
         avg = np.mean(list(scores.values()), axis=0)
-        # 准确率
-        pacc = model.accuracy(self.tst_coref_states)
-        self.entity_linking_logger.info('Test accuracy: %.4f\n' % (pacc))
+        # 输出每个角色的准确率、召回率、F值
         for l, s in scores.items():
             self.entity_linking_logger.info("%10s : %.4f %.4f %.4f" % (l, s[0], s[1], s[2]))
         self.entity_linking_logger.info('\n%10s : %.4f %.4f %.4f' % ('avg', avg[0], avg[1], avg[2]))
-        # 宏平均
+
+        # 计算并输出宏平均准确率、召回率、f值
         macro_scorer = LinkingMacroF1Evaluator()
         p, r, f = macro_scorer.evaluate_states(self.tst_coref_states)
         self.entity_linking_logger.info("\n%10s : %.4f %.4f %.4f" % ("macro", p, r, f))
+
         # 输出标注结果
         results_path = Paths.Logs.get_log_dir() + \
                        to_dir_name(Paths.Logs.get_iteration_dir_name(self.iteration_num))

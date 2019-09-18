@@ -47,6 +47,15 @@ class Paths(object):
             return Paths.CorefModels._dir + \
                    Paths.CorefModels._feat_map_name_template.format(experiment_type, iteration_num)
 
+    class LinkingModels(object):
+        _dir = "trained_models/"
+        _model_name_template = "{0}.f1-4.{1}.lk.m"
+
+        @staticmethod
+        def get_model_export_path(experiment_type, iteration_num):
+            return Paths.LinkingModels._dir + \
+                   Paths.LinkingModels._model_name_template.format(experiment_type, iteration_num)
+
     class Params(object):
         _dir = "params/"
         _params_name_template = "{0}-{1}-params.json"
