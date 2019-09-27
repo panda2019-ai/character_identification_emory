@@ -61,13 +61,6 @@ class JointMentionClusterEntityLinker(object):
 
     def accuracy(self, states):
         X, Ys, Yp = self.construct_batch(states)
-        self.slinking_model.metrics = ['sparse_categorical_accuracy']
-        self.plinking_model.metrics = ['binary_accuracy']
-        self.logger.info("slinking_model.metrics_names\n" + str(self.slinking_model.metrics_names))
-        self.logger.info("slinking_model.summary\n" + str(self.slinking_model.summary()))
-        self.logger.info("plinking_model.metrics_names\n" + str(self.plinking_model.metrics_names))
-        self.logger.info("plinking_model.summary\n" + str(self.plinking_model.summary()))
-
         return self.slinking_model.test_on_batch(X, Ys)[1], self.plinking_model.test_on_batch(X, Yp)[1]
 
     def load_model_weights(self, sing_path, pl_path):

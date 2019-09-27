@@ -1,11 +1,11 @@
 import tensorflow as tf
+# 通过Keras后端接口来编写代码
 import keras.backend as K
 
 from keras.models import Model
 from keras.regularizers import l2
 from keras.optimizers import RMSprop
 from keras.layers.merge import concatenate
-
 from keras.layers import Input, Reshape, Dense, Dropout
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 
@@ -24,36 +24,46 @@ class NoClusterFeatsPluralACNN(object):
 
         self.logger = logger
 
+        # 设置GPU选项
         gpu_opts = tf.GPUOptions(allow_growth=True, visible_device_list=','.join(map(str, gpu) if gpu else []))
+        # 实例化会话对象
         sess = tf.InteractiveSession(config=tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_opts))
+        # 将Keras作为tensorflow的精简接口
         K.set_session(sess)
-
+        # 指定tensorflow运行的GPU或CPU设备
         with tf.device('/device:GPU:%d' % gpu_num):
+            # 定义共指消解输入层
+            # 1. mention-pair的输入
             mm_pft = Input(shape=(pftdim,))
+            # 2. mention1的输入， mention2的输入
             m1_mft, m2_mft = Input(shape=(mftdim,)), Input(shape=(mftdim,))
-
-            # antecedent mention
+            # 3. 针对某个mention抽取出的所有特征的输入
             m1_efts = [Input(shape=(r, d)) for r, d in eftdims]
-            # current mention
+            # 4. 针对某个mention抽取出的所有特征的输入
             m2_efts = [Input(shape=(r, d)) for r, d in eftdims]
 
+            # mention表达的命名空间
             with tf.name_scope('mrepr'):
                 expand_dims, reshape_df, dropout = [], Reshape((nb_fltrs,)), Dropout(0.8)
+                # 所有特征的1-gram卷积层序列，2-gram卷积层序列，3-gram卷积层序列，1-gram池化层序列，2-gram池化层序列，3-gram池化层序列
                 eft_c1rs, eft_c2rs, eft_c3rs, eft_p1rs, eft_p2rs, eft_p3rs = [], [], [], [], [], []
+                # 遍历每1个抽取出的特征的维度信息
                 for r, d in eftdims:
                     expand_dims.append(Reshape((r, d, -1)))
-                    # CONV1 卷积核窗口为1个单词
+                    # CONV1 卷积核窗口为1个单词，即1-gram滤波器，从卷积层输入形状(None, 2, 286, 1)表示channels为1，因此相当于Conv1D
                     eft_c1rs.append(Conv2D(nb_fltrs, (1, d), activation='tanh'))
-                    # CONV1 卷积核窗口为2个单词
+                    # CONV1 卷积核窗口为2个单词，即2-gram滤波器
                     eft_c2rs.append(Conv2D(nb_fltrs, (2, d), activation='tanh'))
-                    # CONV1 卷积核窗口为3个单词
+                    # CONV1 卷积核窗口为3个单词，即3-gram滤波器
                     eft_c3rs.append(Conv2D(nb_fltrs, (3, d), activation='tanh'))
-                    # CONV1 池化层
+                    # CONV1 卷积核窗口为1个单词的池化层
                     eft_p1rs.append(MaxPooling2D(pool_size=(r - 0, 1)))
+                    # CONV1 卷积核窗口为2个单词的池化层
                     eft_p2rs.append(MaxPooling2D(pool_size=(r - 1, 1)))
+                    # CONV1 卷积核窗口为3个单词的池化层
                     eft_p3rs.append(MaxPooling2D(pool_size=(r - 2, 1)))
 
-                # CONV2 卷积核窗口为1个mention
+                # CONV2
                 nb_rows, mrepr_conv = 3 * self.nb_efts, Conv2D(nb_fltrs, (1, nb_fltrs), activation='tanh')
                 reshape_cefts, mrepr_pool = Reshape((nb_rows, nb_fltrs, -1)), MaxPooling2D(pool_size=(nb_rows, 1))
 
@@ -74,6 +84,7 @@ class NoClusterFeatsPluralACNN(object):
                 m1_mrepr = mrepr(m1_efts, m1_mft, name='m1_mrpr')
                 m2_mrepr = mrepr(m2_efts, m2_mft, name='m2_mrpr')
 
+            # mention-pair表达的命名空间
             with tf.name_scope('mpair'):
                 mpair_conv = Conv2D(nb_fltrs, (1, nb_fltrs + mftdim), activation='tanh')
                 reshape_reprs, mpair_pool = Reshape((2, nb_fltrs + mftdim, -1)), MaxPooling2D(pool_size=(2, 1))
@@ -85,6 +96,7 @@ class NoClusterFeatsPluralACNN(object):
 
                 mm_mpair = mpair(m1_mrepr, m2_mrepr, mm_pft, name='mm_mpair')
 
+            # 预测mention-pair中两个mention关系的命名空间
             with tf.name_scope('preds'):
                 mm_hidden = dropout(Dense(nb_fltrs, activation='relu')(mm_mpair))
                 mm_probs = Dense(3, activation='softmax', name='mm_probs', kernel_regularizer=l2(0.005))(mm_hidden)
