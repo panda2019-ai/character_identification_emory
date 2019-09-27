@@ -76,8 +76,9 @@ def anc_str(t):
 
 
 class MentionFeatureExtractor(object):
+    # 初始化词向量对象，人名词典，有生命名词词典，无生命名词词典，词语向量维度大小的空词语向量，人名姓向量维度大小的空人名姓向量
     def __init__(self, w2v, w2g, spks, poss, ners, deps, ani, ina, spk_dim=5, pos_dim=5, ner_dim=5, dep_dim=5, anc_dim=5):
-        self.w2v, self.w2v_d, self.w2g, self.w2g_d = w2v, w2v.get_dimension(), w2g, 0
+        self.w2v, self.w2v_d, self.w2g, self.w2g_d = w2v, w2v.get_dimension(), w2g, w2v.get_dimension()
         self.none_wvec, self.none_gvec = np.zeros(self.w2v_d).astype('float32'), np.zeros(self.w2g_d).astype('float32')
 
         self.ani, self.ina = ani, ina
