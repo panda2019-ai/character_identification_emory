@@ -21,6 +21,7 @@ class LatestSystem(ExperimentSystem):
     def _experiment_type(self):
         return ExperimentTypes.LATEST
 
+    # 以场景为单位，提取共指簇（多个指向同一个角色的mentions集合）、簇中每个mention对应的角色序列
     def _load_transcripts(self):
         # 读取4个季的剧本数据文件名
         data_in = Paths.Transcripts.get_input_transcript_paths()
@@ -44,7 +45,7 @@ class LatestSystem(ExperimentSystem):
             # 初始化所有mentions_id集合，训练/验证/测试字典<mention_id, [mention1, mention2, ...]>
             keys, d_trn, d_dev, d_tst = set(), dict(), dict(), dict()
 
-            # 遍历每个mentions
+            # 遍历1个季的剧本语料中的每个mentions
             for m in ms:
                 # 当前mention的上一个段落episode_id
                 eid = m.tokens[0].parent_episode().id
@@ -71,6 +72,7 @@ class LatestSystem(ExperimentSystem):
             # 按照mention_id排序所有mentions，并遍历每1个mention
             for key in sorted(keys):
                 if key in d_trn:
+                    # 针对每一个场景构建1个共指簇PluralCorefState实例
                     self.trn_coref_states.append(PluralCorefState(d_trn[key], extract_gold=True))
                 if key in d_dev:
                     self.dev_coref_states.append(PluralCorefState(d_dev[key], extract_gold=True))
@@ -111,7 +113,7 @@ class LatestSystem(ExperimentSystem):
         spks, poss, deps, ners = self._load_transcripts()
 
         # 抽取共指特征，save_feats=False不保存抽取出的特征
-        self._extract_coref_features(spks, poss, deps, ners, save_feats=False)
+        self._extract_coref_features(spks, poss, ners, deps, save_feats=False)
 
         # 初始化other类型mention和general类型mention
         eftdims, mftdim, pftdim = self._get_coref_feature_shapes()
@@ -145,10 +147,10 @@ class LatestSystem(ExperimentSystem):
 
         # golds测试语料中标注好的共指簇，autos为系统预测的共指簇
         golds, autos, = [s.gCs for s in self.tst_coref_states], [s.auto_clusters() for s in self.tst_coref_states]
-        # Bcube评测方法
+        # B3评测方法
         p, r, f = BCubeEvaluator().evaluate_documents(golds, autos)
         self.coref_logger.info('Bcube - %.4f/%.4f/%.4f' % (p, r, f))
-        # Ceafe评测方法
+        # Ceaf评测方法
         p, r, f = CeafeEvaluator().evaluate_documents(golds, autos)
         self.coref_logger.info('Ceafe - %.4f/%.4f/%.4f' % (p, r, f))
         # Blanc评测方法

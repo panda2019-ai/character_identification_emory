@@ -120,9 +120,9 @@ class ExperimentSystem(ABC):
 
     # 抽取共指消解特征
     def _extract_coref_features(self, spks, poss, ners, deps, save_feats=True):
-        # 加载抽取共指特征所需资源
+        # 加载抽取共指特征所需资源，包括词语向量对象，人名姓词典，无生命名词词典，有生命名词词典
         w2v, w2g, ani, ina = self._load_coref_resources()
-        # 实例化抽取共指消解特征对象
+        # 初始化词向量对象，人名词典，有生命名词词典，无生命名词词典，词语向量维度大小的空词语向量，人名姓向量维度大小的空人名姓向量
         feat_extractor = MentionFeatureExtractor(w2v, w2g, spks, poss, ners, deps, ani, ina)
 
         # 抽取共指消解特征
