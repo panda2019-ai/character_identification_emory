@@ -37,7 +37,8 @@ class TranscriptUtils(object):
     @staticmethod
     def collect_from_nodes(episodes, f):
         us = [u for e in episodes for s in e.scenes for u in s.utterances]
-        return set([f(n) for u in us for ns in u.statements for n in ns])
+        # return set([f(n) for u in us for ns in u.statements for n in ns])
+        return set()
 
     @staticmethod
     def collect_pos_tags(episodes):
