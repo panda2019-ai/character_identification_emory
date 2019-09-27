@@ -27,34 +27,43 @@ class SpliceReader:
 
         return episodes, season_mentions
 
+    # episode_json表示1集的所有数据，season_mentions表示1个季的所有mentions。
+    # 该方法从episode_json抽取出所有mentions后，将这些mention添加到season_mentions。
     def read_episode_json(self, episode_json, season_mentions):
         episode_id = episode_json["episode_id"]
         episode_num = idutils.parse_episode_id(episode_id)[-1]
 
         scene_jsons = episode_json["scenes"]
+        # 读取并存储每个场景的数据到scenes列表，同时抽取出每个场景中的mentions添加到season_mentions
         scenes = [self.read_scene_json(scene_json, season_mentions)
                   for scene_json in scene_jsons]
 
+        # scenes列表中的每个场景都有指向其前一个场景的指针和指向后一个场景的指针
         for i in range(len(scenes) - 1):
             scenes[i + 1]._previous = scenes[i]
             scenes[i]._next = scenes[i + 1]
 
         return Episode(episode_num, scenes)
 
+    # scene_json表示1个场景的所有数据，season_mentions表示1个季的所有mentions。
+    # 该方法从scene_json抽取出所有mentions后，将这些mention添加到season_mentions。
     def read_scene_json(self, scene_json, season_mentions):
         scene_id = scene_json["scene_id"]
         scene_num = idutils.parse_scene_id(scene_id)[-1]
 
         utterance_jsons = scene_json["utterances"]
+        # [(发言信息，发言中的所有mention的信息),...]
         utterance_mention_pairs = [self.read_utterance_json(utterance_json) for utterance_json in utterance_jsons]
-
+        # 1个场景中的所有发言信息
         utterances = [pair[0] for pair in utterance_mention_pairs]
+        # 1个场景中的所有mention信息
         scene_mentions = flatten([pair[1] for pair in utterance_mention_pairs])
 
         # remove any entities which do not have sing. mentions references but have pl. mention references
+        # 1个场景中的所有单数mention对应的角色
         sing_labels = set([m.gold_refs[0] for m in scene_mentions if not m.plural])
         for m in scene_mentions:
-            if m.plural:
+            if m.plural:  # 如果mention为复数mention
                 # if entity does not exist in the singular labels, then replace it with "#other#" label
                 m.gold_refs = [gref
                                if gref in sing_labels or gref == "#other#" or gref == "#general#"
@@ -64,9 +73,10 @@ class SpliceReader:
                 # remove any duplicate labels
                 m.gold_refs = list(set(m.gold_refs))
 
+            # 如果训练语料中mention没有对应的角色标记，则为它分配角色标记为"#other#"
             if len(m.gold_refs) == 0:
                 m.gold_refs = ["#other#"]
-
+        # 更新1个季的数据的mentions序列列表
         season_mentions.extend(scene_mentions)
 
         for i in range(len(utterances) - 1):
@@ -75,49 +85,49 @@ class SpliceReader:
 
         return Scene(scene_num, utterances)
 
+    # utterance_json表示1个发言的信息
     def read_utterance_json(self, utterance_json):
+        # 说话者
         speakers = utterance_json["speakers"]
-
+        # 分词后的词语序列
         word_forms = utterance_json["tokens"]
+        # 词性标注序列
         pos_tags = utterance_json["part_of_speech_tags"]
+        # 依存关系标记序列
         dep_tags = utterance_json["dependency_tags"]
+        # 依存关系标记序列
         dep_heads = utterance_json["dependency_heads"]
+        # 命名实体标注序列
         ner_tags = utterance_json["named_entity_tags"]
+        # 角色标注序列
         ref_tags = utterance_json["character_entities"]
 
+        # 构建1个utterence的所有TokenNode实例序列，TokenNode存储了1个词语的词形、词性、实体标记等信息
         tokens_all = self.parse_token_nodes(word_forms, pos_tags, dep_tags, dep_heads, ner_tags)
+        # 由tokens_all和角色信息ref_tags构建1个utterance中mentions的PluralMentionNode序列
+        # 1个PluralMentionNode存储了1个mention的序号、在TokenNode序列中的起始/终止位置、mention对应的角色、
+        # 指示mention是否为复数mention。
         utterance_mentions = self.parse_mention_nodes(tokens_all, ref_tags)
 
+        # 返回(Utterance实例, 输入utterance中包含的mentions列表)
         return Utterance(speakers, statements=tokens_all), utterance_mentions
 
+    # 解析1个utterence中的所有词语，构建1个utterence的所有TokenNode实例序列，TokenNode存储了1个词语的词形、词性、实体标记等信息
     def parse_token_nodes(self, word_forms, pos_tags, dep_tags, dep_heads, ner_tags):
         tokens_all = []
-
-        # sentence
-        # for word_s, pos_s, dep_s, h_dep_s, ner_s in zip(word_forms, pos_tags, dep_tags, dep_heads, ner_tags):
-        #     tokens = []
-        #
-        #     for idx, word, pos, dep, ner in zip(range(len(word_s)), word_s, pos_s, dep_s, ner_s):
-        #         token = TokenNode(idx, word, pos, ner, dep)
-        #         tokens.append(token)
-        #
-        #     for idx, hid in enumerate(h_dep_s):
-        #         tokens[idx].dep_head = tokens[hid - 1] if hid > 0 else None
-        #
-        #     tokens_all.append(tokens)
-
-        # sentence
         for word_s, pos_s, ner_s in zip(word_forms, pos_tags, ner_tags):
             tokens = []
-
             for idx, word, pos, ner in zip(range(len(word_s)), word_s, pos_s, ner_s):
+                # 构建TokenNode实例，它的信息有，词语在句子中的序号，词形，词性，实体标记
                 token = TokenNode(idx, word, pos, ner)
+                # 将TokenNode实例添加到列表tokens
                 tokens.append(token)
-
+            # 将1个句子的tokens列表添加到1个utterence列表tokens_all中
             tokens_all.append(tokens)
-
+        # 返回该utterence的TokenNode实例序列
         return tokens_all
 
+    # tokens表示TokenNode实例列表，referents表示tokens中各mention对应的角色信息，
     def parse_mention_nodes(self, tokens, referents):
         mentions = []
         for token_s, ref_s in zip(tokens, referents):
@@ -135,10 +145,14 @@ class SpliceReader:
                 # remove general label from plural mentions
                 if len(refs) > 1:
                     refs = list(set([ref if ref != "#GENERAL#" else "#OTHER#" for ref in refs]))
-
-                mention = PluralMentionNode(self.mid, token_s[start_idx:end_idx], refs, plural=is_plural)
+                # 初始化1个PluralMentionNode实例，该实例中存储了
+                mention = PluralMentionNode(self.mid,  # mention_id
+                                            token_s[start_idx:end_idx],  # 构成mention的TokenNode列表
+                                            refs,  # 该mention对应的角色列表
+                                            plural=is_plural)  # 是否为复数mention也就是这个mention对应多个角色
+                # 添加PluralMentionNode实例到mentions
                 mentions.append(mention)
-
+        # 返回输入tokens序列中含有的所有实例化后的PluralMentionNode列表
         return mentions
 
     def assign_metadata(self, episodes):

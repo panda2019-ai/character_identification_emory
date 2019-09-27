@@ -4,6 +4,7 @@ from experiments.latest.tools.cluster import PluralCluster
 from experiments.latest.tools.mention import other, general
 
 
+# 一个场景中的共指mention簇集合类
 class PluralCorefState(list):
     def __init__(self, mentions, extract_gold=False, pfts=None, mpairs=None):
         list.__init__(self, mentions)

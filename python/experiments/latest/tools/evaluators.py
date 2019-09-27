@@ -28,7 +28,6 @@ class AbstractEvaluator(object):
                 else:
                     m2cs[m] = [c]
         return m2cs
-        # return dict((m, c) for c in clusters for m in c)
 
 
 class BCubeEvaluator(AbstractEvaluator):

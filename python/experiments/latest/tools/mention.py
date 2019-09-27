@@ -3,15 +3,20 @@ import numpy as np
 from structure import TokenNode
 
 
+# Mention节点信息类
 class PluralMentionNode(object):
     def __init__(self, id, tokens, gold_refs, auto_refs=None, feat_map=None, plural=False):
+        # mention的id
         self.id = id
+        # 构成mentions的TokenNode列表
         self.tokens = tokens
-
+        # mention对应的角色序列（标准答案）
         self.gold_refs = [gref.lower() for gref in gold_refs]
+        # mention对应的角色序列（角色识别系统给出的预测结果）
         self.auto_refs = [aref.lower() for aref in auto_refs] if auto_refs else []
+        # mention的特征映射
         self.feat_map = feat_map if feat_map is not None else dict()
-
+        # 是否为复数mention，也就是该mention对应多个角色
         self.plural = plural
 
     def __lt__(self, other_mention):
