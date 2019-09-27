@@ -1,3 +1,4 @@
+# 剧集类
 class Episode(object):
     def __init__(self, id, scenes=None, previous=None, next=None):
         self.id = int(id)
@@ -19,6 +20,7 @@ class Episode(object):
         return self._next
 
 
+# 场景类
 class Scene(object):
     def __init__(self, id, utterances=None, episode=None, previous=None, next=None):
         self.id = int(id)
@@ -45,6 +47,7 @@ class Scene(object):
         return self._episode
 
 
+# 发言类
 class Utterance(object):
     def __init__(self, speakers, utterances=None, statements=None, scene=None, previous=None, next=None):
         self.speakers = speakers
