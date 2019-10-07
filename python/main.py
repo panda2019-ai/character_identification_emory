@@ -2,6 +2,7 @@ from plural_resolution import PluralResolutionDemo
 
 
 def main():
+
     demo = PluralResolutionDemo()
     demo.exe()
 

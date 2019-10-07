@@ -109,7 +109,7 @@ class LatestSystem(ExperimentSystem):
     # 抽取共指消解特征，训练共指消解模型，保存共指消解模型，
     # 如果设置seed_path="test"，则只抽取共指消解特征，不训练也不保存共指消解模型。
     def run_coref(self, seed_path=""):
-        # 加载剧本语料
+        # 加载角色识别语料
         spks, poss, deps, ners = self._load_transcripts()
 
         # 抽取共指特征，save_feats=False不保存抽取出的特征
@@ -119,7 +119,7 @@ class LatestSystem(ExperimentSystem):
         eftdims, mftdim, pftdim = self._get_coref_feature_shapes()
         init_super_mentions(eftdims, mftdim, pftdim)
 
-        # 初始化共指消解模型
+        # 搭建共指消解模型
         model = NoClusterFeatsPluralACNN(eftdims,
                                          mftdim,
                                          pftdim,
@@ -136,6 +136,7 @@ class LatestSystem(ExperimentSystem):
                                 batch_size=self.coref_params["batch_size"],
                                 model_out=self.coref_model_save_path)
         else:
+            # 加载共指消解模型
             model.load_model_weights(self.coref_model_save_path)
 
         # 共指消解模型评测

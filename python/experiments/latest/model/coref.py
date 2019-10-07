@@ -1,4 +1,7 @@
 import tensorflow as tf
+# 关掉WARNING
+tf.logging.set_verbosity(tf.logging.ERROR)
+
 # 通过Keras后端接口来编写代码
 import keras.backend as K
 
@@ -21,7 +24,6 @@ class NoClusterFeatsPluralACNN(object):
         self.nb_filters, self.nb_efts = nb_fltrs, len(eftdims)
         self.eftdims, self.mftdim, self.pftdim = eftdims, mftdim, pftdim
         self.ranking_model, self.mrepr_model, self.mpair_model = None, None, None
-
         self.logger = logger
 
         # 设置GPU选项
@@ -113,6 +115,7 @@ class NoClusterFeatsPluralACNN(object):
         ranking_inputs = m1_efts + m2_efts + [m1_mft, m2_mft, mm_pft]
         self.ranking_model = Model(inputs=ranking_inputs, outputs=[mm_probs], name='mm_ranking_model')
         self.ranking_model.compile(optimizer=RMSprop(), loss=['sparse_categorical_crossentropy'], metrics=['sparse_categorical_accuracy'])
+
 
     # 获取mention表达
     def get_mreprs(self, instances):
