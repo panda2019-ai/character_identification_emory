@@ -23,16 +23,18 @@ class LatestSystem(ExperimentSystem):
 
     # 以场景为单位，提取共指簇（多个指向同一个角色的mentions集合）、簇中每个mention对应的角色序列
     def _load_transcripts(self):
-        # 读取4个季的剧本数据文件名
+        # 开始计时
+        self.timer.start("load_transcript")
+        # 读取《老友记》4个季的剧本数据文件名
         data_in = Paths.Transcripts.get_input_transcript_paths()
 
-        self.timer.start("load_transcript")
+        # 实例化数据读取对象
         reader = SpliceReader()
         # 初始化说话者集合，词性标记集合，依存标记集合，人名标记集合
         spks, poss, deps, ners = set(), set(), set(), set()
-        # 遍历每个季的数据
+        # 遍历《老友记》每个季的数据，构建训练和验证集
         for d_in in data_in:
-            # 读取所有episodes和mentions
+            # 读取一个季数据中所有episodes和mentions，d_in[0]存储本季数据文件名
             es, ms = reader.read_season_json(d_in[0])
             # 更新说话者标识集合
             spks.update(TranscriptUtils.collect_speakers(es))
@@ -42,43 +44,86 @@ class LatestSystem(ExperimentSystem):
             ners.update(TranscriptUtils.collect_ner_tags(es))
             # 更新依存标记集合
             deps.update(TranscriptUtils.collect_dep_labels(es))
-            # 初始化所有mentions_id集合，训练/验证/测试字典<mention_id, [mention1, mention2, ...]>
-            keys, d_trn, d_dev, d_tst = set(), dict(), dict(), dict()
+            # keys存储训练训练和验证和测试中的mentions组id，1个mention组含有1个场景中的所有mention
+            # 训练d_trn、验证d_dev字典的存储结构为 <mentsion组id, [mention1, mention2, ...]>
+            keys, d_trn, d_dev = set(), dict(), dict()
 
-            # 遍历1个季的剧本语料中的每个mentions
+            # 遍历1个季的剧本语料中的每个mention，构建训练和验证集字典，构建mention组id集合
             for m in ms:
-                # 当前mention的上一个段落episode_id
+                # 当前mention所在的剧集id
                 eid = m.tokens[0].parent_episode().id
-                # 当前mention的上一个场景scene_id
+                # 当前mention所在场景的id
                 sid = m.tokens[0].parent_scene().id
 
-                # 根据eid的值，来判断后续读取的数据被更新到的数据字典（训练d_trn，验证d_dev，测试d_tst)
-                # 每个季的数据中的1-19episode作为训练集
-                # 每个季的数据中的20,21episode作为验证集
-                # 每个季的数据中的22以后的episode作为测试集
-                target = d_trn if eid in d_in[1] \
-                    else d_dev if eid in d_in[2] \
-                    else d_tst
+                # 根据剧集id的值，决定target指向训练集字典或验证集字典
+                # 每个季的数据中的1-19集中的所有mention作为训练集
+                # 每个季的数据中的20集以后剧集中的所有mention作为验证集
+                if eid in d_in[1]:
+                    target = d_trn
+                elif eid in d_in[2]:
+                    target = d_dev
+                else:
+                    continue
 
-                # 计算mention_id，注意mention_id由上一对episode_id和scene_id决定
+                    # 计算mention组id，同一集同一场景中的mention共享同一个mention组id
                 key = eid * 100 + sid
-                # 将mention添加到相应的mention_id对应的值序列中
+                # 将mention添加到训练集字典或验证集字典
                 if key not in target:
                     target[key] = []
                 target[key].append(m)
-                # 更新mentions_id集合
+                # 记录mentions组id
                 keys.add(key)
 
-            # 按照mention_id排序所有mentions，并遍历每1个mention
+            # 按照mention组id排序所有mention组，并遍历每个mention组，
+            # 构建训练集trn_coref_states，验证集dev_coref_states
             for key in sorted(keys):
                 if key in d_trn:
                     # 针对每一个场景构建1个共指簇PluralCorefState实例
                     self.trn_coref_states.append(PluralCorefState(d_trn[key], extract_gold=True))
                 if key in d_dev:
                     self.dev_coref_states.append(PluralCorefState(d_dev[key], extract_gold=True))
+            # 1个季的数据读取完毕，记录读取到的mention数量
+            self.coref_logger.info("Transcript loaded: %s, %d mentions" % (d_in[0], len(ms)))
+
+        # 读取《我爱我家》数据，构建测试集
+        # 数据集路径
+        data_in = [("data/enhanced-jsons_wawj/wawj_season_01.json",)]
+        # 遍历《我爱我家》每个季的数据，构建测试集
+        for d_in in data_in:
+            # 读取一个季数据中所有episodes和mentions，d_in[0]存储本季数据文件名
+            es, ms = reader.read_season_json(d_in[0])
+            # 测试d_tst字典的存储结构为 < mentsion组id, [mention1, mention2, ...] >
+            keys, d_tst = set(), dict()
+            # 遍历1个季的剧本语料中的每个mention，构建测试集字典，构建mention组id集合
+            for m in ms:
+                # 当前mention所在的剧集id
+                eid = m.tokens[0].parent_episode().id
+                # 当前mention所在场景的id
+                sid = m.tokens[0].parent_scene().id
+
+                # target指向测试集字典
+                target = d_tst
+                # 计算mention组id，同一集同一场景中的mention共享同一个mention组id
+                key = eid * 100 + sid
+
+                # 计算mention组id，同一集同一场景中的mention共享同一个mention组id
+                key = eid * 100 + sid
+                # 将mention添加到训练集字典或验证集字典
+                if key not in target:
+                    target[key] = []
+                target[key].append(m)
+                # 记录mentions组id
+                keys.add(key)
+
+            # 按照mention组id排序所有mention组，并遍历每个mention组，
+            # 构建训练集trn_coref_states，验证集dev_coref_states
+            for key in sorted(keys):
                 if key in d_tst:
+                    # 针对每一个场景构建1个共指簇PluralCorefState实例
                     self.tst_coref_states.append(PluralCorefState(d_tst[key], extract_gold=True))
-            self.coref_logger.info("Transcript loaded: %s w/ %d mentions" % (d_in[0], len(ms)))
+
+            # 1个季的数据读取完毕，记录读取到的mention数量
+            self.coref_logger.info("wawj Transcript loaded: %s w/ %d mentions" % (d_in[0], len(ms)))
 
         # 训练集XXX数量
         trnc = sum(map(len, self.trn_coref_states))

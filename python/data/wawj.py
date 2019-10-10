@@ -9,14 +9,15 @@ import json
 from pyhanlp import *
 
 
-outfile = open('wawj_season_01.json', 'wb')
+outfile = open('enhanced-jsons_wawj/wawj_season_01.json', 'wb')
 
 # 分句分词、词性标注、命名实体识别
 def lexical_analysis(text):
     word_li = []
     pos_li = []
     name_entity_li = []
-    for word_item in HanLP.segment(text):
+    character_entities_li = []
+    for index, word_item in enumerate(HanLP.segment(text)):
         word = word_item.word
         pos = str(word_item.nature)
         word_li.append(word)
@@ -25,7 +26,10 @@ def lexical_analysis(text):
             name_entity_li.append("U-PERSON")
         else:
             name_entity_li.append("O")
-    return word_li, pos_li, name_entity_li
+        if word == "你" or word == "他" or word == "她":
+            character_entities_li.append([index, index+1, ""])
+    
+    return word_li, pos_li, name_entity_li, character_entities_li
 
 
 with codecs.open('wawjdata.txt', 'rb', 'utf-8', 'ignore') as infile:
@@ -38,6 +42,8 @@ with codecs.open('wawjdata.txt', 'rb', 'utf-8', 'ignore') as infile:
     # 构建剧集结构
     episode_li = re.split('\n\n\n', text)
     for episode_id, episode in enumerate(episode_li) :
+        if episode_id >= 4:
+            break
         episode_dict = dict()
         print('episode_id:', "s01_e%02d" % (episode_id + 1))
         episode_dict["episode_id"] = "s01_e%02d" % (episode_id + 1)
@@ -63,15 +69,18 @@ with codecs.open('wawjdata.txt', 'rb', 'utf-8', 'ignore') as infile:
                 # 说话内容
                 utterance_dict["transcript"] = transcript
                 # 词法分析
-                tokens, part_of_speech_tags, named_entity_tags = lexical_analysis(transcript)
+                tokens, part_of_speech_tags, named_entity_tags, character_entities_li = lexical_analysis(transcript)
                 # 分句并分词
                 utterance_dict["tokens"] = [tokens]
                 # 词性标注
                 utterance_dict["part_of_speech_tags"] = [part_of_speech_tags]
+                # 依存句法标注
+                utterance_dict["dependency_tags"] = None
+                utterance_dict["dependency_heads"] = None
                 # 命名实体标注
                 utterance_dict["named_entity_tags"] = [named_entity_tags]
                 # 角色标注
-                utterance_dict["character_entities"] = None
+                utterance_dict["character_entities"] = [character_entities_li]
                 # 添加1个发言数据
                 # print(utterance_dict)
                 # input()

@@ -174,8 +174,8 @@ class ExperimentSystem(ABC):
     def run(self):
         # 抽取共指消解特征，训练共指消解模型，保存共指消解模型，
         # 如果设置seed_path="test"，则只抽取共指消解特征，不训练也不保存共指消解模型。
-        self.run_coref(seed_path="test")
-        # 加载共指消解模型，并解析出共指消解特征
-        self.extract_learned_coref_features()
-        # 实体连接抽取
-        self.run_entity_linking(seed_path="test")
+        self.run_coref(seed_path="")
+        # # 加载共指消解模型，并解析出共指消解特征
+        # self.extract_learned_coref_features()
+        # # 实体连接抽取
+        # self.run_entity_linking(seed_path="test")

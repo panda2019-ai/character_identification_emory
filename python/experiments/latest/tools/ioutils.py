@@ -4,18 +4,21 @@ from pydash import flatten
 from experiments.latest.tools.mention import PluralMentionNode
 from structure import Utterance, Scene, Episode, TokenNode
 from util import idutils
+import codecs
 
 
 class SpliceReader:
     def __init__(self):
         self.mid = 0
 
+    # 抽取1个季的数据中的所有mention，同时构建以集为单位的剧集数据集
     def read_season_json(self, json_path):
         season_mentions = []
 
-        with open(json_path, "r") as fin:
+        with codecs.open(json_path, "rb", "utf-8", "ignore") as fin:
             season_json = json.load(fin)
             episode_jsons = season_json["episodes"]
+            # 对每1集数据抽取mentions并添加到season_mentions
             episodes = [self.read_episode_json(episode_json, season_mentions)
                         for episode_json in episode_jsons]
 
@@ -30,7 +33,9 @@ class SpliceReader:
     # episode_json表示1集的所有数据，season_mentions表示1个季的所有mentions。
     # 该方法从episode_json抽取出所有mentions后，将这些mention添加到season_mentions。
     def read_episode_json(self, episode_json, season_mentions):
+        # 剧集id
         episode_id = episode_json["episode_id"]
+        # 剧集的集序号
         episode_num = idutils.parse_episode_id(episode_id)[-1]
 
         scene_jsons = episode_json["scenes"]
